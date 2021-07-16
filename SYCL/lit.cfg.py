@@ -110,7 +110,7 @@ with open(check_l0_file, 'w') as fp:
     fp.write('int main() { uint32_t t; zeDriverGet(&t,nullptr); return t; }')
 
 config.level_zero_libs_dir=lit_config.params.get("level_zero_libs_dir", config.level_zero_libs_dir)
-config.level_zero_include=lit_config.params.get("level_zero_include", (config.level_zero_include if config.level_zero_include else os.path.join(config.sycl_include, '..')))
+config.level_zero_include=lit_config.params.get("level_zero_include", (config.level_zero_include if config.level_zero_include else config.sycl_include))
 
 level_zero_options=level_zero_options = (' -L'+config.level_zero_libs_dir if config.level_zero_libs_dir else '')+' -lze_loader '+' -I'+config.level_zero_include
 if cl_options:
@@ -134,12 +134,14 @@ if config.opencl_libs_dir:
 config.substitutions.append( ('%opencl_include_dir',  config.opencl_include_dir) )
 
 if cl_options:
-    config.substitutions.append( ('%sycl_options',  ' sycl.lib /I'+config.sycl_include ) )
+    config.substitutions.append( ('%sycl_options',  ' sycl.lib /I' +
+                                config.sycl_include + ' /I' + os.path.join(config.sycl_include, 'sycl')) )
     config.substitutions.append( ('%include_option',  '/FI' ) )
     config.substitutions.append( ('%debug_option',  '/DEBUG' ) )
     config.substitutions.append( ('%cxx_std_option',  '/std:' ) )
 else:
-    config.substitutions.append( ('%sycl_options', ' -lsycl -I'+config.sycl_include ) )
+    config.substitutions.append( ('%sycl_options', ' -lsycl -I' +
+                                config.sycl_include + ' -I' + os.path.join(config.sycl_include, 'sycl')) )
     config.substitutions.append( ('%include_option',  '-include' ) )
     config.substitutions.append( ('%debug_option',  '-g' ) )
     config.substitutions.append( ('%cxx_std_option',  '-std=' ) )
@@ -152,7 +154,7 @@ if not config.sycl_be:
 # Mapping from SYCL_BE backend definition style to SYCL_DEVICE_FILTER used
 # for backward compatibility
 try:
-  config.sycl_be = { 'PI_OPENCL': 'opencl',  'PI_CUDA': 'cuda', 'PI_LEVEL_ZERO': 'level_zero'}[config.sycl_be]
+  config.sycl_be = { 'PI_OPENCL': 'opencl',  'PI_CUDA': 'cuda', 'PI_ROCM': 'rocm', 'PI_LEVEL_ZERO': 'level_zero'}[config.sycl_be]
 except:
   # do nothing a we expect that new format of plugin values are used
   pass
@@ -166,12 +168,24 @@ config.substitutions.append( ('%BE_RUN_PLACEHOLDER', "env SYCL_DEVICE_FILTER={SY
 if config.dump_ir_supported:
    config.available_features.add('dump_ir')
 
-if config.sycl_be not in ['host', 'opencl','cuda', 'level_zero']:
-    lit_config.error("Unknown SYCL BE specified '" +
-                     config.sycl_be +
-                     "' supported values are opencl, cuda, level_zero")
+if config.sycl_be not in ['host', 'opencl', 'cuda', 'rocm', 'level_zero']:
+   lit_config.error("Unknown SYCL BE specified '" +
+                    config.sycl_be +
+                    "' supported values are opencl, cuda, rocm, level_zero")
 
-config.substitutions.append( ('%clangxx', ' '+ config.dpcpp_compiler + ' ' + config.cxx_flags ) )
+# If ROCM_PLATFORM flag is not set, default to AMD, and check if ROCM platform is supported
+supported_rocm_platforms=["AMD", "NVIDIA"]
+if config.rocm_platform == "":
+    config.rocm_platform = "AMD"
+if config.rocm_platform not in supported_rocm_platforms:
+    lit_config.error("Unknown ROCm platform '" + config.rocm_platform + "' supported platforms are " + ', '.join(supported_rocm_platforms))
+
+if config.sycl_be == "rocm" and config.rocm_platform == "AMD":
+    mcpu_flag = '-mcpu=' + config.mcpu
+else:
+    mcpu_flag = ""
+
+config.substitutions.append( ('%clangxx', ' '+ config.dpcpp_compiler + ' ' + config.cxx_flags + ' ' + mcpu_flag) )
 config.substitutions.append( ('%clang', ' ' + config.dpcpp_compiler + ' ' + config.c_flags ) )
 config.substitutions.append( ('%threads_lib', config.sycl_threads_lib) )
 
@@ -273,13 +287,26 @@ else:
 config.substitutions.append( ('%ACC_RUN_PLACEHOLDER',  acc_run_substitute) )
 config.substitutions.append( ('%ACC_CHECK_PLACEHOLDER',  acc_check_substitute) )
 
-if config.sycl_be == 'cuda':
+if config.sycl_be == 'cuda' or (config.sycl_be == 'rocm' and config.rocm_platform == 'NVIDIA'):
     config.substitutions.append( ('%sycl_triple',  "nvptx64-nvidia-cuda-sycldevice" ) )
+elif config.sycl_be == 'rocm' and config.rocm_platform == 'AMD':
+    config.substitutions.append( ('%sycl_triple',  "amdgcn-amd-amdhsa-sycldevice" ) )
 else:
     config.substitutions.append( ('%sycl_triple',  "spir64-unknown-unknown-sycldevice" ) )
 
 if find_executable('sycl-ls'):
     config.available_features.add('sycl-ls')
+
+llvm_tools = ["llvm-spirv", "llvm-link"]
+for llvm_tool in llvm_tools:
+  llvm_tool_path = find_executable(llvm_tool)
+  if llvm_tool_path:
+    lit_config.note("Found " + llvm_tool)
+    config.available_features.add(llvm_tool)
+    config.substitutions.append( ('%' + llvm_tool.replace('-', '_'),
+                                  os.path.realpath(llvm_tool_path)) )
+  else:
+    lit_config.warning("Can't find " + llvm_tool)
 
 # Device AOT compilation tools aren't part of the SYCL project,
 # so they need to be pre-installed on the machine
