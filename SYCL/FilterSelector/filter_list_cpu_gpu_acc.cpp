@@ -25,52 +25,52 @@
 // RUN: env CL_CONFIG_CPU_EMULATE_DEVICES=2 SYCL_DEVICE_FILTER=cpu,acc,host %t.out | FileCheck %s --check-prefixes=CHECK-ACC-CPU-HOST
 // RUN: env SYCL_DEVICE_FILTER=cuda:cpu,opencl:gpu,level_zero:acc,host %t.out | FileCheck %s --check-prefixes=CHECK-GPU-HOST
 //
+// CHECK-ACC-ONLY-NOT: Device: cpu
 // CHECK-ACC-ONLY: Device: acc
 // CHECK-ACC-ONLY-NOT: Device: gpu
-// CHECK-ACC-ONLY-NOT: Device: cpu
 // CHECK-ACC-ONLY-NOT: Device: host
 //
+// CHECK-GPU-ONLY-NOT: Device: cpu
 // CHECK-GPU-ONLY-NOT: Device: acc
 // CHECK-GPU-ONLY: Device: gpu
-// CHECK-GPU-ONLY-NOT: Device: cpu
 // CHECK-GPU-ONLY-NOT: Device: host
 //
+// CHECK-CPU-ONLY: Device: cpu
 // CHECK-CPU-ONLY-NOT: Device: acc
 // CHECK-CPU-ONLY-NOT: Device: gpu
-// CHECK-CPU-ONLY: Device: cpu
 // CHECK-CPU-ONLY-NOT: Device: host
 //
+// CHECK-HOST-ONLY-NOT: Device: cpu
 // CHECK-HOST-ONLY-NOT: Device: acc
 // CHECK-HOST-ONLY-NOT: Device: gpu
-// CHECK-HOST-ONLY-NOT: Device: cpu
 // CHECK-HOST-ONLY: Device: host
 //
-// CHECK-ACC-GPU: Device: acc
-// CHECK-ACC-GPU: Device: gpu
 // CHECK-ACC-GPU-NOT: Device: cpu
+// CHECK-ACC-GPU: Device: acc
+// CHECK-ACC-GPU-NEXT: Device: gpu
 // CHECK-ACC-GPU-NOT: Device: host
 //
+// CHECK-CPU-HOST: Device: cpu
 // CHECK-CPU-HOST-NOT: Device: acc
 // CHECK-CPU-HOST-NOT: Device: gpu
-// CHECK-CPU-HOST: Device: cpu
 // CHECK-CPU-HOST: Device: host
 //
 // CHECK-ACC-CPU: Device: acc
+// CHECK-ACC-CPU-NEXT: Device: cpu
 // CHECK-ACC-CPU-NOT: Device: gpu
-// CHECK-ACC-CPU: Device: cpu
 // CHECK-ACC-CPU-NOT: Device: host
 //
+// CHECK-GPU-HOST-NOT: Device: cpu
 // CHECK-GPU-HOST-NOT: Device: acc
 // CHECK-GPU-HOST: Device: gpu
-// CHECK-GPU-HOST-NOT: Device: cpu
 // CHECK-GPU-HOST: Device: host
 //
-// CHECK-ACC-CPU-HOST: Device: acc
+// CHECK-ACC-CPU-HOST-DAG: Device: cpu
+// CHECK-ACC-CPU-HOST-DAG: Device: acc
 // CHECK-ACC-CPU-HOST-NOT: Device: gpu
-// CHECK-ACC-CPU-HOST: Device: cpu
 // CHECK-ACC-CPU-HOST: Device: host
 //
-// CHECK-ACC-GPU-CPU: Device: acc
-// CHECK-ACC-GPU-CPU: Device: gpu
 // CHECK-ACC-GPU-CPU: Device: cpu
+// CHECK-ACC-GPU-CPU-NEXT: Device: acc
+// CHECK-ACC-GPU-CPU-NEXT: Device: gpu
 // CHECK-ACC-GPU-CPU-NOT: Device: host
