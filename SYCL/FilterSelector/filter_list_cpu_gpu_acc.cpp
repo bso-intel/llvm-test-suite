@@ -71,6 +71,6 @@
 // CHECK-ACC-CPU-HOST: Device: host
 //
 // CHECK-ACC-GPU-CPU: Device: acc
-// CHECK-ACC-GPU-CPU: Device: gpu
-// CHECK-ACC-GPU-CPU: Device: cpu
+// CHECK-ACC-GPU-CPU-DAG: Device: gpu
+// CHECK-ACC-GPU-CPU-DAG: Device: cpu
 // CHECK-ACC-GPU-CPU-NOT: Device: host
