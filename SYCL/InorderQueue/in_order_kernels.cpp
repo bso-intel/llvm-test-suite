@@ -109,6 +109,7 @@ int main() {
       std::cerr << "Total mismatch =  " << err_cnt << std::endl;
       return 1;
     }
+    free(A, ctx);
   }
 
   std::cout << "Passed\n";
